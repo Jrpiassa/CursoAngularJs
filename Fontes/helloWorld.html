@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html ng-app="helloWorld">
+  <head>
+    <meta charset="utf-8">
+    <title>Hello World</title>
+    <script type="text/javascript" src="Bibliotecas/AngularJs/angular.js"></script>
+    <script type="text/javascript">
+      // cria o modulo
+      angular.module("helloWorld", []);
+      //poderia usar assim: var app = angular.module("helloWorld", []);
+      //mas o recurso a seguir é melhor, serve para localizar o modulo
+      angular.module("helloWorld").controller("helloWorldCTRL", function($scope){
+        $scope.mensagem = "Hello AngularJs";
+      });
+    </script>
+  </head>
+  <body ng-controller="helloWorldCTRL">
+    {{mensagem}}
+  </body>
+</html>
