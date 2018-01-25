@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="Lib/Bootstrap/bootstrap.css">
     <style>
       .jumbotron{
-        width: 400px;
+        width: 700px;
         margin-top: 20px;
         text-align: center;
         margin-left: auto;
@@ -28,27 +28,31 @@
       }
     </style>
     <script type="text/javascript" src="Lib/AngularJs/angular.js"></script>
+    <script type="text/javascript" src="Lib/AngularJs/angular-messages.js"></script>
+    <script type="text/javascript" src="Lib/AngularJs/angular-locale_fr-fr.js"></script>
+    <script type="text/javascript" src="Lib/AngularJs/angular-locale_pt-br.js"></script>
     <script type="text/javascript">
-      angular.module("listaTelefonica", []);
-      angular.module("listaTelefonica").controller("listaTelefonicaCtrl", function($scope){
+      angular.module("listaTelefonica", ["ngMessages"]);
+      angular.module("listaTelefonica").controller("listaTelefonicaCtrl", function($scope, $filter){
         $scope.app = "Lista Telefonica";
         $scope.contatos = [
-          {nome:"Pedro", telefone:"9999-9999", cor: "blue"},
-          {nome:"Ana", telefone:"8888-8888", cor: "yellow"},
-          {nome:"João", telefone:"7777-7777", cor: "green"}
+          {nome:$filter("uppercase")("Pedro"), telefone:"9999-9999", data: new Date(), cor: "blue"},
+          {nome:$filter("uppercase")("Ana"), telefone:"8888-8888", data: new Date(), cor: "yellow"},
+          {nome:$filter("uppercase")("João"), telefone:"7777-7777", data: new Date(), cor: "green"}
         ];
 
         $scope.operadoras = [
-          {nome: "Oi", codigo: 14, categoria: "Celular"},
-          {nome: "Vivo", codigo: 15, categoria: "Celular"},
-          {nome: "Tim", codigo: 41, categoria: "Celular"},
-          {nome: "Gvt", codigo: 25, categoria: "Fixo"},
-          {nome: "Embratel", codigo: 41, categoria: "Fixo"}
+          {nome: "Oi", codigo: 14, categoria: "Celular", preco: 2},
+          {nome: "Vivo", codigo: 15, categoria: "Celular", preco: 3},
+          {nome: "Tim", codigo: 41, categoria: "Celular", preco: 4},
+          {nome: "Gvt", codigo: 25, categoria: "Fixo", preco: 5},
+          {nome: "Embratel", codigo: 41, categoria: "Fixo", preco: 6}
         ];
 
         $scope.adicionarContato = function(contato){
           $scope.contatos.push(contato);
           delete $scope.contato;
+          $scope.contatoForm.$setPristine();
         };
 
         $scope.apagarContatos = function(contatos){
@@ -64,6 +68,11 @@
             return contato.selecionado;
           });
         };
+
+        $scope.ordenarPor = function(campo){
+          $scope.criterioOrdenar = campo;
+          $scope.direcao = !$scope.direcao;
+        };
       });
 
     </script>
@@ -71,33 +80,54 @@
   <body ng-controller="listaTelefonicaCtrl">
     <div class="jumbotron">
       <h3>{{app}}</h3>
-      <table class="table table-striped">
+      <input class="form-control" type="text" ng-model="busca" placeholder="O que deseja buscar?" />
+      <table ng-show="contatos.length > 0" class="table table-striped">
         <tr>
           <th></th>
-          <th>Nome:</th>
+          <th><a href="" ng-click="ordenarPor('nome')"> Nome: </a></th>
           <th>Telefone:</th>
           <th>Operadora:</th>
           <th>Cor:</th>
+          <th>Data:</th>
         </tr>
-        <tr ng-class="{'selecionado negrito': contato.selecionado}" ng-repeat="contato in contatos">
+        <tr ng-class="{'selecionado negrito': contato.selecionado}" ng-repeat="contato in contatos | filter:{nome: busca} | orderBy:criterioOrdenar:direcao">
           <td><input type="checkbox" ng-model="contato.selecionado" /></td>
           <td>{{contato.nome}}</td>
           <td>{{contato.telefone}}</td>
-          <td>{{contato.operadora.nome}}</td>
+          <td>{{contato.operadora.nome | lowercase}}</td>
           <td><div style="width: 20px; height: 20px;" ng-style="{'background-color': contato.cor}"></div></td>
+          <td>{{contato.data | date: 'dd/MM/yyyy HH:MM'}}</td>
         </tr>
       </table>
       <hr />
-      <input class="form-control" type="text" ng-model="contato.nome" placeholder="Nome" />
-      <input class="form-control" type="text" ng-model="contato.telefone" placeholder="Telefone" />
-      <select class="form-control" ng-model="contato.operadora"
-        ng-options="operadora.nome group by operadora.categoria for operadora in operadoras">
-          <option value="">Selecione a Operadora</option>
-        </select>
+
+      É válido: {{contatoForm.$valid}}<br />
+      É inválido: {{contatoForm.$invalid}}
+      <form name="contatoForm">
+        <input name="nome" class="form-control" type="text" ng-model="contato.nome" placeholder="Nome" ng-required="true" />
+        <input ng-pattern="/^\d{4,5}-\d{4}$/" name="telefone" class="form-control" type="text" ng-model="contato.telefone" placeholder="Telefone" ng-required="true" />
+        <select class="form-control" ng-model="contato.operadora"
+        ng-options="operadora.nome+ '( '+(operadora.preco | currency)+')' group by operadora.categoria for operadora in operadoras | orderBy:'nome'">
+        <option value="">Selecione a Operadora</option>
+      </select>
+      </form>
+
+      <div ng-messages="contatoForm.nome.$error" class="alert alert-danger">
+        <div ng-message="required && contatoForm.nome.$dirty">
+          Por favor preencha o nome!
+        </div>
+        <div ng-message="required && contatoForm.telefone.$dirty">
+          Por favor preencha o telefone!
+        </div>
+        <div ng-message="pattern">
+          O formato do telefone deve ser DDDDD-DDDD
+        </div>
+      </div>
         <button class="btn btn-primary btn-block" ng-click="adicionarContato(contato)"
-          ng-disabled="!contato.nome || !contato.telefone">Adiciona Contato</button>
+          ng-disabled="contatoForm.$invalid">Adiciona Contato</button>
           <button class="btn btn-danger btn-block" ng-click="apagarContatos(contatos)"
             ng-disabled="!isContatoSelecionado(contatos)">Apagar Contatos</button>
     </div>
+    <div ng-include="'footer.html'"></div>
   </body>
 </html>
